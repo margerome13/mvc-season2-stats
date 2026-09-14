@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MVC Season 2 — Stat Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0e1014;
+      --bg-elevated: #161a21;
+      --bg-soft: #1c212b;
+      --stroke: #2a3140;
+      --text: #e8eaef;
+      --text-secondary: #9aa3b2;
+      --text-tertiary: #6b7380;
+      --accent: #3dd68c;
+      --accent-soft: rgba(61, 214, 140, 0.12);
+      --info: #5b9cff;
+      --info-soft: rgba(91, 156, 255, 0.12);
+      --warning: #e8b84a;
+      --green: #00a651;
+      --white: #f4f4f4;
+      --purple: #7b2d8e;
+      --pink: #ff69b4;
+      --black: #1a1a1a;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 10% -10%, rgba(0, 166, 81, 0.14), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 0%, rgba(91, 156, 255, 0.08), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    h1, h2 {
+      font-family: Outfit, sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+    h1 { font-size: 1.85rem; }
+    h2 { font-size: 1.2rem; }
+
+    .header { display: flex; flex-direction: column; gap: 6px; }
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .sub { color: var(--text-secondary); font-size: 0.95rem; }
+    .meta { color: var(--text-tertiary); font-size: 0.8rem; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(61, 214, 140, 0.28);
+    }
+    .pill.muted {
+      background: var(--bg-soft);
+      color: var(--text-secondary);
+      border-color: var(--stroke);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .stat {
+      background: var(--bg-elevated);
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .stat-value {
+      font-family: Outfit, sans-serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .stat-value.success { color: var(--accent); }
+    .stat-value.info { color: var(--info); }
+    .stat-label {
+      margin-top: 4px;
+      color: var(--text-tertiary);
+      font-size: 0.8rem;
+    }
+
+    .callout {
+      background: var(--accent-soft);
+      border: 1px solid rgba(61, 214, 140, 0.25);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .callout-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+    .callout p {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.92rem;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 16px;
+    }
+    .side { display: flex; flex-direction: column; gap: 16px; }
+
+    .card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--stroke);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 16px 10px;
+      font-family: Outfit, sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .card-body { padding: 0 16px 16px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    th {
+      text-align: left;
+      color: var(--text-tertiary);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--stroke);
+    }
+    td {
+      padding: 10px 6px;
+      border-bottom: 1px solid rgba(42, 49, 64, 0.7);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    .num { text-align: center; font-variant-numeric: tabular-nums; }
+    .right { text-align: right; font-variant-numeric: tabular-nums; }
+    .team-name { font-weight: 600; }
+    .team-color { color: var(--text-tertiary); font-size: 0.75rem; margin-top: 2px; }
+
+    .row-leader td:first-child::before,
+    .row-warn td:first-child::before,
+    .row-info td:first-child::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .row-leader td:first-child::before { background: var(--accent); }
+    .row-warn td:first-child::before { background: var(--warning); }
+    .row-info td:first-child::before { background: var(--info); }
+
+    .swatch {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+      margin-right: 6px;
+      vertical-align: middle;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .swatch.green { background: var(--green); }
+    .swatch.white { background: var(--white); }
+    .swatch.purple { background: var(--purple); }
+    .swatch.pink { background: var(--pink); }
+    .swatch.black { background: var(--black); }
+
+    .chart-wrap { padding-top: 4px; }
+    .chart-caption {
+      margin-top: 8px;
+      color: var(--text-tertiary);
+      font-size: 0.78rem;
+    }
+    .bar-chart {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 8px 10px;
+      align-items: center;
+    }
+    .bar-label {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      text-align: right;
+    }
+    .bar-track {
+      position: relative;
+      height: 22px;
+      background: var(--bg-soft);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      min-width: 36px;
+    }
+    .bar-fill.pos { background: rgba(61, 214, 140, 0.75); color: #04140c; }
+    .bar-fill.neg { background: rgba(232, 100, 100, 0.55); color: #fff; }
+
+    .divider {
+      height: 1px;
+      background: var(--stroke);
+      border: 0;
+      margin: 4px 0;
+    }
+
+    .results-intro {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin: 0 0 8px;
+    }
+    .badge-new {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      background: var(--info-soft);
+      color: var(--info);
+    }
+
+    .footnote {
+      color: var(--text-tertiary);
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 820px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      .stats { grid-template-columns: 1fr; }
+      h1 { font-size: 1.5rem; }
+    }
+
+    @media print {
+      body { background: #fff; color: #111; }
+      .page { max-width: none; }
+      .card, .stat, .callout {
+        background: #fff;
+        border-color: #ddd;
+        break-inside: avoid;
+      }
+      .sub, .meta, .stat-label, .team-color, .chart-caption, .footnote, .results-intro, th {
+        color: #555;
+      }
+      .stat-value.success, .callout-title, .pill { color: #0a7a45; }
+      .bar-track { background: #eee; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="title-row">
+        <h1>MVC Season 2</h1>
+        <span class="pill">Round 1 complete</span>
+      </div>
+      <div class="sub">Maya Volleyball Club · 3-set format (25-25-15) · Round robin · Started June 5, 2026</div>
+      <div class="meta">Source: Reclub score sheet (MVC Season 4.pdf) · exported Sep 14, 2026 · Round 1 complete</div>
+    </header>
+
+    <section class="stats">
+      <div class="stat">
+        <div class="stat-value success">10 / 10</div>
+        <div class="stat-label">Matches played</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value success">Guardians</div>
+        <div class="stat-label">Undefeated leader</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value success">4–0 · 8–0</div>
+        <div class="stat-label">Leader W–L · sets</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value info">Spikers</div>
+        <div class="stat-label">First win · Sep 11</div>
+      </div>
+    </section>
+
+    <aside class="callout">
+      <div class="callout-title">Round 1 finale — Sep 11</div>
+      <p>Maya Bank Spikers def. Maya Black QRPH 21-25, 25-17, 15-10 (2–1). Black took set 1; Spikers won set 2 and the deciding set. Round 1 complete.</p>
+    </aside>
+
+    <section class="main-grid">
+      <article class="card">
+        <div class="card-header">Final Round 1 standings</div>
+        <div class="card-body">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">#</th>
+                <th>Team</th>
+                <th class="num">W</th>
+                <th class="num">L</th>
+                <th class="num">Sets</th>
+                <th class="right">PF</th>
+                <th class="right">PA</th>
+                <th class="right">Diff</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-leader">
+                <td class="num">1</td>
+                <td>
+                  <div class="team-name"><span class="swatch green"></span>Maya Vault Guardians</div>
+                  <div class="team-color">Green</div>
+                </td>
+                <td class="num">4</td>
+                <td class="num">0</td>
+                <td class="num">8-0</td>
+                <td class="right">200</td>
+                <td class="right">143</td>
+                <td class="right">+57</td>
+              </tr>
+              <tr>
+                <td class="num">2</td>
+                <td>
+                  <div class="team-name"><span class="swatch white"></span>Maya Block x White</div>
+                  <div class="team-color">White</div>
+                </td>
+                <td class="num">3</td>
+                <td class="num">1</td>
+                <td class="num">6-4</td>
+                <td class="right">217</td>
+                <td class="right">186</td>
+                <td class="right">+31</td>
+              </tr>
+              <tr>
+                <td class="num">3</td>
+                <td>
+                  <div class="team-name"><span class="swatch purple"></span>Maya Loan Wolves</div>
+                  <div class="team-color">Purple</div>
+                </td>
+                <td class="num">2</td>
+                <td class="num">2</td>
+                <td class="num">4-4</td>
+                <td class="right">172</td>
+                <td class="right">186</td>
+                <td class="right">-14</td>
+              </tr>
+              <tr>
+                <td class="num">4</td>
+                <td>
+                  <div class="team-name"><span class="swatch pink"></span>Maya Bank Spikers</div>
+                  <div class="team-color">Pink</div>
+                </td>
+                <td class="num">1</td>
+                <td class="num">3</td>
+                <td class="num">3-7</td>
+                <td class="right">195</td>
+                <td class="right">212</td>
+                <td class="right">-17</td>
+              </tr>
+              <tr class="row-warn">
+                <td class="num">5</td>
+                <td>
+                  <div class="team-name"><span class="swatch black"></span>Maya Black QRPH</div>
+                  <div class="team-color">Black</div>
+                </td>
+                <td class="num">0</td>
+                <td class="num">4</td>
+                <td class="num">2-8</td>
+                <td class="right">167</td>
+                <td class="right">224</td>
+                <td class="right">-57</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="chart-caption">Tiebreak: match W–L → head-to-head → set difference → point difference</p>
+        </div>
+      </article>
+
+      <div class="side">
+        <article class="card">
+          <div class="card-header">Point differential</div>
+          <div class="card-body chart-wrap">
+            <div class="bar-chart" aria-label="Point differential by team">
+              <div class="bar-label">Guardians</div>
+              <div class="bar-track"><div class="bar-fill pos" style="width:100%">+57</div></div>
+              <div class="bar-label">White</div>
+              <div class="bar-track"><div class="bar-fill pos" style="width:54%">+31</div></div>
+              <div class="bar-label">Wolves</div>
+              <div class="bar-track"><div class="bar-fill neg" style="width:25%">-14</div></div>
+              <div class="bar-label">Spikers</div>
+              <div class="bar-track"><div class="bar-fill neg" style="width:30%">-17</div></div>
+              <div class="bar-label">Black QRPH</div>
+              <div class="bar-track"><div class="bar-fill neg" style="width:100%">-57</div></div>
+            </div>
+            <p class="chart-caption">Pts for minus pts against across all Round 1 matches</p>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-header">
+            <span>Round 2</span>
+            <span class="pill muted">Next</span>
+          </div>
+          <div class="card-body">
+            <div class="team-name" style="margin-bottom:6px">Second round-robin on Reclub</div>
+            <div class="sub" style="font-size:0.85rem">Fixtures listed, no scores yet. Round 1 preliminary phase is finished.</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <section>
+      <h2>Match results</h2>
+      <p class="results-intro">Set scores listed Team A–Team B. Sep 11 finale marked below.</p>
+      <article class="card">
+        <div class="card-body" style="padding-top:8px">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Match</th>
+                <th>Winner</th>
+                <th>Set scores (A–B)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Jun 05</td>
+                <td>Guardians vs Spikers</td>
+                <td>Guardians</td>
+                <td>25-17, 25-20</td>
+              </tr>
+              <tr>
+                <td>Jun 05</td>
+                <td>Black QRPH vs White</td>
+                <td>White</td>
+                <td>25-23, 12-25, 6-15</td>
+              </tr>
+              <tr>
+                <td>Jun 26</td>
+                <td>Guardians vs Wolves</td>
+                <td>Guardians</td>
+                <td>25-15, 25-19</td>
+              </tr>
+              <tr>
+                <td>Jul 03</td>
+                <td>Spikers vs White</td>
+                <td>White</td>
+                <td>19-25, 25-20, 11-15</td>
+              </tr>
+              <tr>
+                <td>Jul 03</td>
+                <td>Black QRPH vs Wolves</td>
+                <td>Wolves</td>
+                <td>20-25, 24-25</td>
+              </tr>
+              <tr>
+                <td>Jul 31</td>
+                <td>Wolves vs Spikers</td>
+                <td>Wolves</td>
+                <td>25-22, 25-20</td>
+              </tr>
+              <tr>
+                <td>Jul 31</td>
+                <td>Black QRPH vs Guardians</td>
+                <td>Guardians</td>
+                <td>12-25, 16-25</td>
+              </tr>
+              <tr>
+                <td>Sep 04</td>
+                <td>Wolves vs White</td>
+                <td>White</td>
+                <td>22-25, 16-25</td>
+              </tr>
+              <tr>
+                <td>Sep 04</td>
+                <td>Guardians vs White</td>
+                <td>Guardians</td>
+                <td>25-20, 25-24</td>
+              </tr>
+              <tr class="row-info">
+                <td>Sep 11 <span class="badge-new">New</span></td>
+                <td>Black QRPH vs Spikers</td>
+                <td>Spikers</td>
+                <td>25-21, 17-25, 10-15</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <p class="footnote">Also mirrored in MVC Transaction Log 2026.xlsx → Stat Dashboard.</p>
+  </div>
+</body>
+</html>
